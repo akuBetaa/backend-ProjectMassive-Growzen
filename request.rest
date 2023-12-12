@@ -1,0 +1,30 @@
+//file untuk pengujian dengan extentions Rest CLient
+
+GET http://localhost:3005/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsIm5hbWUiOiJiZXRhIiwiZW1haWwiOiJiZXRhQGdtYWlsLmNvbSIsImlhdCI6MTcwMjM2OTEwNCwiZXhwIjoxNzAyMzY5MTI0fQ.ToQ-Ss6NY2icL851Q0ZOfVkQszG3RNLbdWeF0xeiCjI
+
+###
+POST  http://localhost:3005/users
+Content-Type: application/json
+
+{
+    "name" : "beta",
+    "email" : "beta@gmail.com",
+    "password" : "123456",
+    "confPassword" : "123456"
+}
+
+###
+POST  http://localhost:3005/login
+Content-Type: application/json
+
+{
+    "email" : "beta@gmail.com",
+    "password" : "123456"
+}
+
+###
+GET http://localhost:3005/token 
+
+###
+DELETE http://localhost:3005/logout
