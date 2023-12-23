@@ -1,30 +1,57 @@
-//file untuk pengujian dengan extentions Rest CLient
-
-GET http://localhost:3005/users
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUsIm5hbWUiOiJiZXRhIiwiZW1haWwiOiJiZXRhQGdtYWlsLmNvbSIsImlhdCI6MTcwMjM2OTEwNCwiZXhwIjoxNzAyMzY5MTI0fQ.ToQ-Ss6NY2icL851Q0ZOfVkQszG3RNLbdWeF0xeiCjI
+GET http://localhost:3008/users
 
 ###
-POST  http://localhost:3005/users
+GET http://localhost:3008/users/1
+
+###
+POST http://localhost:3008/users
 Content-Type: application/json
 
 {
-    "name" : "beta",
-    "email" : "beta@gmail.com",
-    "password" : "123456",
-    "confPassword" : "123456"
+    "name" : "Beta Nurul",
+    "email" : "user@gmail.com",
+    "password" : "1234",
+    "confPassword" : "1234",
+    "role" : "admin"
 }
 
 ###
-POST  http://localhost:3005/login
+POST http://localhost:3008/register
 Content-Type: application/json
 
 {
-    "email" : "beta@gmail.com",
-    "password" : "123456"
+    "name" : "Beta Nurul A",
+    "email" : "user@gmail.com",
+    "password" : "1234",
+    "confPassword" : "1234"
 }
 
 ###
-GET http://localhost:3005/token 
+PATCH http://localhost:3008/users/7
+Content-Type: application/json
+
+{
+    "name" : "Beta Update2",
+    "email" : "user@gmail.com",
+    "password" : "1234",
+    "confPassword" : "1234",
+    "role" : "user"
+}
 
 ###
-DELETE http://localhost:3005/logout
+DELETE http://localhost:3008/users/2
+
+###
+POST http://localhost:3008/login
+Content-Type: application/json
+
+{
+    "email" : "admin@gmail.com",
+    "password" : "1234"
+}
+
+###
+GET http://localhost:3008/me
+
+###
+DELETE  http://localhost:3008/logout

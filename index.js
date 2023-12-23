@@ -1,32 +1,71 @@
 import express from "express";
-import dotenv from "dotenv";
-import db from "./config/database.js";
-import cookieParser from "cookie-parser";
 import cors from "cors";
-// import Users from "./models/UserModel.js"; (import untuk membuat tabel Users)
-import router from "./routes/index.js";
+import session from "express-session";
+import dotenv from "dotenv";
+import db from "./config/Database.js"
+import morgan from "morgan"
+
+import UserRoute from "./routes/UserRoute.js";
+import AuthRoute from "./routes/AuthRoute.js"
+
 
 dotenv.config();
-
 const app = express();
-const port = 3005;
 
-try {
-    await db.authenticate();
-    console.log ('Database connected....');
-    // await Users.sync(); (untuk membuat table di mysql)
-} catch (error) {
-    console.error(error);
-}
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true, 
+    cookie: {
+        secure: 'auto'
+    }
+}));
 
-// { credentials: true, origin: 'http://localhost:5173'};
-//supaya dapat diakses keluar port. letak domain ada di origin : 'http:localhost:post!!!'
-app.use(cors( ));
-//digunakan untuk token supaya tidak perlu refresh token apabila sudah login
-app.use(cookieParser());
-//express.jeson untuk menerima data dalam bentuk json
+// app.use(session({
+//     secret: process.env.SESSION_SECRET,
+//     resave: false,
+//     saveUninitialized: true,
+//   }));
+
+// Gunakan morgan sebagai middleware
+app.use(morgan('combined'));
+
+app.use(cors({
+    credentials: true,
+    origin : "http://localhost:5173",
+}));
+
 app.use(express.json());
-//Midleware
-app.use(router);
+app.use(UserRoute);
+app.use(AuthRoute);
 
-app.listen(port, () => console.log(`Server running at port ${port}`))
+
+app.listen(process.env.APP_PORT, () => {
+    console.log(`Server berjalan pada Port ${process.env.APP_PORT}`)
+})
+
+
+
+
+// //UNTUK MEMBUATT DATABASE
+// import createUsers from "./models/UserModels.js";
+// import createBlogs from "./models/BlogModels.js";
+
+//     db.query(createUsers, function (err, results, fields) {
+//         if (err) {
+//             console.log('Tabel Gagal dibuat' + err.message);
+//         }
+//     });
+
+//     db.query(createBlogs, function (err, results, fields) {
+//         if (err) {
+//             console.log('Tabel Gagal dibuat' + err.message);
+//         }
+//     });
+
+//     //tuutp koneksi setelah selesai
+//     db.end(function (err) {
+//         if (err) {
+//             return console.log(err.message);
+//         }
+//     });

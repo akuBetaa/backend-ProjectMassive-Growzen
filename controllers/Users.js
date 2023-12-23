@@ -1,119 +1,198 @@
-import Users from "../models/UserModel.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+// import Users from "../models/UserModels.js";
+import argon2 from "argon2";
+import db from "../config/Database.js";
+import { v4 as uuidv4 } from 'uuid';
 
-export const getUsers = async (req, res) => {
+//memanggil seluruh data user
+export const getUsers = async(req, res) => {
     try {
-        const { email } = req.loggedUser
-        console.log(email);
-        const users = await Users.findOne({
-            where: {
-                email: email
-            },
-            attributes: ['id', 'name', 'email']
-        });
-        res.json(users);
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-
-//function register
-export const Register = async (req, res) => {
-    const { name, email, password, confPassword } = req.body;
-
-    if (password !== confPassword)
-        return res.status(400).json({ msg: "Password dan Konfirmasi Password tidak cocok" });
-
-    const salt = await bcrypt.genSalt();
-    const hashPassword = await bcrypt.hash(password, salt);
-
-    try {
-        await Users.create({
-            name: name,
-            email: email,
-            password: hashPassword
-        });
-        res.json({ msg: "Register Berhasil" })
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-//function login
-export const Login = async (req, res) => {
-    try {
-        const { email, password } = req.body
-        console.log(email, "<<<<<<<<email");
-        const user = await Users.findOne({
-            //mencari berdasarkan email
-            where: {
-                email: email
+        const query = "SELECT * FROM user";
+    
+        const data = await new Promise((resolve, reject) => {
+          db.query(query, (err, data) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(data);
             }
+          });
         });
+    
+        return res.status(200).json(data);
+      } catch (error) {
+        console.error("Error in getAllUsers:", error);
+        return res.status(500).send("Server Internal Error");
+      }
+}
 
-        console.log(user.password);
-        console.log(password);
-
-        //pembandingan password client dan database
-        const match = await bcrypt.compare(password, user.password);
-        //apabila password tidak macth
-        if (!match) {
-            res.status(400).json({ msg: "Password salah.." })
-        }
-
-        console.log("<<<<<<<<<match");
-
-        const userId = user.id;
-        const name = user.name;
-        const emails = user.email;
-        const accessToken = jwt.sign({ userId, name, emails }, process.env.ACCESS_TOKEN_SECRET, {
-            expiresIn: '10d'
+//memanggil data user berdasarkan id
+export const getUserById = async (req, res) => {
+    try {
+      const userId = req.params.id; // Ambil ID dari parameter URL
+  
+      const query = "SELECT * FROM user WHERE id = ?";
+  
+      const data = await new Promise((resolve, reject) => {
+        db.query(query, [userId], (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(data);
+          }
         });
-
-        // const refreshToken = jwt.sign({ userId, name, emails }, process.env.REFRESH_TOKEN_SECRET, {
-        //     expiresIn: '1d'
-        // });
-
-        // await Users.update({ refresh_token: refreshToken }, {
-        //     where: {
-        //         id: userId
-        //     }
-        // });
-        // res.cookie('refreshToken', refreshToken, {
-        //     httpOnly: true,
-        //     maxAge: 24 * 60 * 60 * 1000
-        // });
-
-        res.json({ accessToken });
-
+      });
+  
+      if (data.length === 0) {
+        return res.status(404).send("Data user tidak ditemukan");
+      }
+  
+      return res.status(200).json(data[0]); // Kembalikan data pertama (hanya satu pengguna berdasarkan ID)
     } catch (error) {
-        //respon apabila user tidak ditemukan
-        res.status(400).json({ msg: "Email tidak ditemukan" });
+      console.error("Error pada getUserById:", error);
+      return res.status(500).send("Internal Server Error");
     }
-}
+  };
 
 
-//function logout
-export const Logout = async (req, res) => {
-    const refreshToken = req.cookies.refreshToken;
+  //menambah data user
+  export const createUser = async (req, res) => {
+    try {
+      const { name, email, password, confPassword, role } = req.body;
+  
+      // Pastikan data yang diterima sesuai dengan skema tabel
+      if (!name || !email || !password || !confPassword) {
+        return res.status(400).send("nama, email, password dan konfirmasi password wajib diisi!");
+      }
+  
+      if (password !== confPassword) {
+        return res.status(400).send("Password dan Konfirmasi Password tidak sama");
+      }
+  
+      // Hash password menggunakan Argon2
+      const hashedPassword = await argon2.hash(password);
+  
+      const userUuid = uuidv4(); // Membuat UUID baru
+  
+      const query = "INSERT INTO user (uuid, name, email, password, role) VALUES (?, ?, ?, ?, ?)";
+  
+      const result = await new Promise((resolve, reject) => {
+        db.query(query, [userUuid, name, email, hashedPassword, role], (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+  
+      const insertedUserId = result.insertId;
+  
+      return res.status(201).json({ userId: insertedUserId, message: "User berhasil ditambahkan" });
+    } catch (error) {
+      console.error("Error pada createUser:", error);
+      return res.status(500).send("Internal Server Error");
+    }
+  };
 
-    if (!refreshToken) return res.sendStatus(204);
+  //membuat register (yang ditambahkan hanya dengan role user)
+  export const registerUser = async (req, res) => {
+    try {
+      const { name, email, password, confPassword } = req.body;
+  
+      // Pastikan data yang diterima sesuai dengan skema tabel
+      if (!name || !email || !password || !confPassword) {
+        return res.status(400).send("nama, email, password dan konfirmasi password wajib diisi!");
+      }
+  
+      if (password !== confPassword) {
+        return res.status(400).send("Password dan Konfirmasi Password tidak sama");
+      }
+  
+      // Hash password menggunakan Argon2
+      const hashedPassword = await argon2.hash(password);
+  
+      const userUuid = uuidv4(); // Membuat UUID baru
 
-    const user = await Users.findAll({
-        where: {
-            refresh_token: refreshToken
-        }
-    });
-    if (!user[0]) return res.sendStatus(204);
+      const role = "user"; //untuk menambahkan role user
+  
+      const query = "INSERT INTO user (uuid, name, email, password, role) VALUES (?, ?, ?, ?, ?)";
+  
+      const result = await new Promise((resolve, reject) => {
+        db.query(query, [userUuid, name, email, hashedPassword, role], (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+  
+      const insertedUserId = result.insertId;
+  
+      return res.status(201).json({ userId: insertedUserId, message: "User berhasil ditambahkan" });
+    } catch (error) {
+      console.error("Error pada createUser:", error);
+      return res.status(500).send("Internal Server Error");
+    }
+  };
 
-    const userId = user[0].id;
-    await Users.update({ refresh_token: null }, {
-        where: {
-            id: userId
-        }
-    });
-    res.clearCookie('refreshToken');
-    return res.sendStatus(200);
-}
+  //untuk memperbaharui user
+  export const updateUser = async (req, res) => {
+    try {
+      const userId = req.params.id; //sdad
+  
+      // mengkonneksikan tabel user {pastikan kamu meiliki}
+      const [user] = await db.promise().query('SELECT * FROM user WHERE id = ?', [userId]);
+
+      if (user.length === 0) {
+        return res.status(404).json({ msg: "Pengguna Tidak Ditemukan" });
+      }
+  
+      const { name, email, password, confPassword, role } = req.body;
+  
+      let hashPassword;
+      if (password === "" || password === null) {
+        hashPassword = user[0].password; // Adjust accordingly based on your table structure
+      } else {
+        hashPassword = await argon2.hash(password);
+      }
+  
+      if (password !== confPassword) {
+        return res
+          .status(400)
+          .json({ msg: "Password dan Konfirmasi Password tidak cocok " });
+      }
+  
+      await db.promise().query(
+        'UPDATE user SET name = ?, email = ?, password = ?, role = ? WHERE id = ?',
+        [name, email, hashPassword, role, userId]
+      );
+  
+      res.status(200).json({ msg: "User Berhasil di Ubah" });
+    } catch (error) {
+      res.status(400).json({ msg: error.message });
+    } 
+  };
+  
+
+  //untuk menghapus user
+
+  export const deleteUser = async (req, res) => {
+    try {
+      const userId = req.params.id;
+  
+      // Assuming you have a table named 'user'
+      const [user] = await db.promise().query('SELECT * FROM user WHERE id = ?', [userId]);
+  
+      if (user.length === 0) {
+        return res.status(404).json({ msg: "Pengguna Tidak Ditemukan" });
+      }
+  
+      await db.promise().query('DELETE FROM user WHERE id = ?', [userId]);
+  
+      res.status(200).json({ msg: "User berhasil dihapus" });
+    } catch (error) {
+      res.status(400).json({ msg: error.message });
+    }
+  };
+  
