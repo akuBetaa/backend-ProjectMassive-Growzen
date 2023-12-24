@@ -27,7 +27,7 @@ Content-Type: application/json
 }
 
 ###
-PATCH http://localhost:3008/users/7
+PATCH http://localhost:3008/users/3
 Content-Type: application/json
 
 {
