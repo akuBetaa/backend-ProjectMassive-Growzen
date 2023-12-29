@@ -21,12 +21,6 @@ app.use(session({
     }
 }));
 
-// app.use(session({
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: true,
-//   }));
-
 // Gunakan morgan sebagai middleware
 app.use(morgan('combined'));
 
